@@ -1,0 +1,4 @@
+# Configuration file
+auto-redirect:
+  enabled: true
+  target-address: '127.0.0.1:25565'

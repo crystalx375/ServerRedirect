@@ -3,23 +3,23 @@ package net.kaikk.mc.serverredirect.bukkit;
 import org.bukkit.entity.Player;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
-import net.kaikk.mc.serverredirect.PluginInfo;
 import net.md_5.bungee.api.ChatColor;
+import org.jetbrains.annotations.NotNull;
 
 public class PlaceholderExpansionImpl extends PlaceholderExpansion {
 	@Override
-	public String getIdentifier() {
-		return PluginInfo.id;
+	public @NotNull String getIdentifier() {
+		return "serverredirect";
 	}
 
 	@Override
-	public String getAuthor() {
-		return PluginInfo.author;
+	public @NotNull String getAuthor() {
+		return "KaiNoMood";
 	}
 
 	@Override
-	public String getVersion() {
-		return PluginInfo.version;
+	public @NotNull String getVersion() {
+		return "1.41.4";
 	}
 
 	@Override

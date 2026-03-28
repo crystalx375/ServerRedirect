@@ -21,11 +21,13 @@ import net.kaikk.mc.serverredirect.bukkit.event.PlayerRedirectEvent;
 
 public class ServerRedirect extends JavaPlugin implements Listener {
 	protected static ServerRedirect instance;
-	protected static Set<UUID> players = Collections.synchronizedSet(new HashSet<>());
+	protected static final Set<UUID> players = Collections.synchronizedSet(new HashSet<>());
 
 	@Override
 	public void onEnable() {
 		instance = this;
+
+        this.saveDefaultConfig();
 
 		this.getCommand("serverredirect").setExecutor(new RedirectCommandExec());
 		this.getCommand("fallbackserver").setExecutor(new FallbackServerCommandExec());
@@ -41,6 +43,7 @@ public class ServerRedirect extends JavaPlugin implements Listener {
 		if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
 			new PlaceholderExpansionImpl().register();
 		}
+        Bukkit.getPluginManager().registerEvents(new AutoRedirect(this), this);
 	}
 
 	@EventHandler
@@ -53,24 +56,25 @@ public class ServerRedirect extends JavaPlugin implements Listener {
 	}
 
 	/**
-	 * Connects the specified player to the specified server address.<br>
-	 * The client must have this mod in order for this to work.
-	 * 
-	 * @param serverAddress the new server address the player should connect to
-	 * @param player the player's instance
-	 * @return true if the redirect message was sent to the specified player
-	 */
-	public static boolean sendTo(Player player, String serverAddress) {
-		final PlayerRedirectEvent event = new PlayerRedirectEvent(player, serverAddress);
-		Bukkit.getPluginManager().callEvent(event);
+     * Connects the specified player to the specified server address.<br>
+     * The client must have this mod in order for this to work.
+     *
+     * @param serverAddress the new server address the player should connect to
+     * @param player        the player's instance
+     */
+    public static void sendTo(Player player, String serverAddress) {
+        String adress = serverAddress.trim();
 
-		if (event.isCancelled()) {
-			return false;
-		}
+        final PlayerRedirectEvent event = new PlayerRedirectEvent(player, adress);
+        Bukkit.getPluginManager().callEvent(event);
 
-		player.sendPluginMessage(instance, "srvredirect:red", Utils.generateAddressMessage(serverAddress));
-		return true;
-	}
+        if (event.isCancelled()) {
+            return;
+        }
+        
+        byte[] message = Utils.generateAddressMessage(adress);
+        player.sendPluginMessage(instance, "srvredirect:red", message);
+    }
 
 	/**
 	 * Connects all players with this mod on their client to the specified server address.
@@ -89,10 +93,9 @@ public class ServerRedirect extends JavaPlugin implements Listener {
 		}
 	}
 
-	public static boolean sendFallbackTo(Player player, String serverAddress) {
+	public static void sendFallbackTo(Player player, String serverAddress) {
 		player.sendPluginMessage(instance, "srvredirect:fal", Utils.generateAddressMessage(serverAddress));
-		return true;
-	}
+    }
 
 	public static void sendFallbackToAll(String serverAddress) {
 		final byte[] message = Utils.generateAddressMessage(serverAddress);

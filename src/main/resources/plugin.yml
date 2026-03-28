@@ -1,5 +1,5 @@
 name: ${project.artifactId}
-main: ${package}.bukkit.${project.artifactId}
+main: net.kaikk.mc.serverredirect.bukkit.ServerRedirect
 version: ${project.version}
 author: ${developer}
 api-version: 1.13
