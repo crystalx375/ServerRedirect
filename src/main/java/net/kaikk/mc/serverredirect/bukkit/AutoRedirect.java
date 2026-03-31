@@ -3,6 +3,7 @@ package net.kaikk.mc.serverredirect.bukkit;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.ComponentLike;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -16,6 +17,7 @@ import org.bukkit.scheduler.BukkitTask;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -31,17 +33,29 @@ public record AutoRedirect(ServerRedirect plugin) implements Listener {
         final Player player = event.getPlayer();
         players.add(player.getUniqueId());
 
-        plugin.getLogger().info("Player " + player.getName() + " joined");
+        plugin.getLogger().info("Player " + player.getName() + " (" + player.getUniqueId() + ") " + "joined");
         plugin.getLogger().info("Currently in HashSet: " + players.toString());
         if (!config.getBoolean("auto-redirect.enabled", true)) {
             return;
         }
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (player.isOnline() && ServerRedirect.isUsingServerRedirect(player)) {
+            if (ServerRedirect.isUsingServerRedirect(player)) {
                 startRedirectCountdown(player);
             } else {
                 player.sendMessage("Please download the mod - Server Redirect");
+                Title.Times times = Title.Times.times(
+                        Duration.ofMillis(500),
+                        Duration.ofSeconds(5),
+                        Duration.ofMillis(500)
+                );
+                Title mod = Title.title(
+                        Component.text("Server Redirect", NamedTextColor.DARK_RED),
+                        Component.text("Please download the mod", NamedTextColor.GOLD),
+                        times
+                        );
+                player.showTitle(mod);
+                player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 2.0f, 0.3f);
             }
         }, 40);
     }
