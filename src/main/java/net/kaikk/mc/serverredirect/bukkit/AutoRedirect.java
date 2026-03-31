@@ -10,35 +10,50 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.HashSet;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public record AutoRedirect(ServerRedirect plugin) implements Listener {
 
+    static HashSet<UUID> players = new HashSet<>();
+
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        final Player player = event.getPlayer();
         FileConfiguration config = plugin.getConfig();
-        plugin.getLogger().info("Player " + player.getName() + " joined");
 
+        final Player player = event.getPlayer();
+        players.add(player.getUniqueId());
+
+        plugin.getLogger().info("Player " + player.getName() + " joined");
+        plugin.getLogger().info("Currently in HashSet: " + players.toString());
         if (!config.getBoolean("auto-redirect.enabled", true)) {
             return;
         }
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (ServerRedirect.isUsingServerRedirect(player)) {
+            if (player.isOnline() && ServerRedirect.isUsingServerRedirect(player)) {
                 startRedirectCountdown(player);
             } else {
-                player.sendMessage("Please install mod (server redirect)");
+                player.sendMessage("Please download the mod - Server Redirect");
             }
         }, 40);
     }
 
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        players.remove(event.getPlayer().getUniqueId());
+    }
+
     private void startRedirectCountdown(Player player) {
+        if (!player.isOnline() || !players.contains(player.getUniqueId())) return;
+
         FileConfiguration config = plugin.getConfig();
         int delayTicks = 100;
         final AtomicInteger ticksLeft = new AtomicInteger(delayTicks);
@@ -62,11 +77,13 @@ public record AutoRedirect(ServerRedirect plugin) implements Listener {
                 try {
                     player.sendActionBar(Component.text("Connecting in: " + (currentTicks / 20), NamedTextColor.AQUA));
                     player.playSound(player.getLocation(), Sound.valueOf(String.valueOf(Sound.ENTITY_EXPERIENCE_ORB_PICKUP)), volume, pitch);
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
 
             ticksLeft.addAndGet(-20);
         }, 0L, 20L);
+
         Bukkit.getScheduler().runTaskLater(plugin, task::cancel, delayTicks + 1);
     }
 
@@ -77,6 +94,7 @@ public record AutoRedirect(ServerRedirect plugin) implements Listener {
 
         plugin.getLogger().info("Trying redirect " + player.getName() + " on " + ip + ", " + port);
 
+
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             if (isServerReachable(ip, port)) {
                 Bukkit.getScheduler().runTask(plugin, () -> ServerRedirect.sendTo(player, address));
@@ -85,7 +103,9 @@ public record AutoRedirect(ServerRedirect plugin) implements Listener {
                     player.sendActionBar((ComponentLike)
                             Component.text("Server currently offline", NamedTextColor.DARK_RED));
                     player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1.0f, 0.5f);
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> startRedirectCountdown(player), 600);
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        if (player.isOnline()) startRedirectCountdown(player);
+                    }, 600);
                 });
             }
         });
